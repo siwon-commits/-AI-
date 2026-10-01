@@ -1,128 +1,121 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>한국 실생활 사진 무료 생성기</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; line-height: 1.6; color: #333; }
-    h2 { border-bottom: 2px solid #007bff; padding-bottom: 10px; }
-    input, button { padding: 12px; font-size: 16px; margin-top: 8px; width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid #ccc; }
-    button { background-color: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 16px; }
-    button:hover { background-color: #0056b3; }
-    #result { margin-top: 20px; padding: 15px; border: 1px solid #ddd; background: #f9f9f9; border-radius: 6px; word-break: break-all; }
-    img { max-width: 100%; height: auto; margin-top: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: block; }
-    .info { font-size: 14px; color: #666; margin-top: 5px; }
-  </style>
-</head>
-<body>
-  <h2>📷 한국 실생활 사진 무료 생성기</h2>
-  <p class="info">※ 100% 무료 API를 이용하며 결제나 회원가입이 필요 없습니다.</p>
-  
-  <label for="keyword" style="margin-top: 15px; display: block; font-weight: bold;">키워드 입력:</label>
-  <input type="text" id="keyword" placeholder="예: 바퀴벌레, 싱크대 청소하는 사람, 세탁기" />
-
-  <button onclick="generateImage()">다른 사진 1장 생성</button>
-
-  <div id="result">
-    <p>키워드를 입력하고 버튼을 누르면 무작위 규칙이 적용된 사진이 생성됩니다.</p>
-  </div>
-
   <script>
     const peopleOptions = [
-      "a Korean woman in her 30s wearing casual home clothes",
-      "a Korean man in his 40s wearing a comfortable t-shirt",
-      "a young Korean adult wearing domestic house clothes",
-      "a middle-aged Korean adult in relaxed home wear"
+      "a Korean woman in her 50s with short permed hair wearing a floral apron",
+      "a Korean man in his 20s wearing a grey hoodie and track pants",
+      "a Korean man in his 60s wearing a knit vest",
+      "a Korean woman in her 20s with a ponytail wearing an oversized sweatshirt",
+      "a Korean man in his 40s wearing a navy polo shirt",
+      "a Korean woman in her 40s wearing a striped long-sleeve shirt"
     ];
 
-    const placeOptions = [
-      "inside a typical old Korean apartment",
-      "inside a modern compact Korean studio apartment",
-      "inside a villa kitchen in Seoul",
-      "inside an authentic Korean residential house room"
+    // 방 종류는 빼고 주거 형태만 → 방은 키워드에 맞게 모델이 결정
+    const housingOptions = [
+      "in an old 1990s Korean apartment",
+      "in a newly built Korean apartment",
+      "in a small Korean villa",
+      "in a Korean one-room studio",
+      "in a Korean officetel",
+      "in an old Korean detached house"
     ];
 
-    const cameraOptions = [
-      "eye-level smartphone camera angle",
-      "slightly high angle candid smartphone shot",
-      "close-up candid smartphone photo",
-      "wide shot showing the full room setup"
+    const toneOptions = [
+      "beige wallpaper and light wood flooring",
+      "white tiles and grey surfaces",
+      "dark brown wood flooring and ivory walls",
+      "light grey walls and oak-tone furniture",
+      "slightly worn yellowish wallpaper and linoleum floor"
     ];
 
     const lightingOptions = [
-      "natural morning sunlight coming through the window",
-      "warm indoor ceiling light at evening",
-      "bright daytime interior lighting",
-      "slightly overcast soft indoor lighting"
+      "soft morning sunlight from a window",
+      "warm ceiling light in the evening",
+      "bright overcast daylight",
+      "fluorescent indoor lighting at night",
+      "afternoon sunlight with soft shadows"
     ];
 
-    function getRandomItem(array) {
-      return array[Math.floor(Math.random() * array.length)];
+    // 키워드 유형별 구도
+    const objectCamera = [
+      "close-up shot, the object fills most of the frame",
+      "medium close-up from slightly above",
+      "eye-level shot, the object centered and large in frame",
+      "angled three-quarter view of the object, sharp focus"
+    ];
+    const actionCamera = [
+      "medium-wide shot showing the person and the surrounding space",
+      "shot from a slightly high angle, full action visible",
+      "side view at eye level, person and object both clearly visible"
+    ];
+    const handCamera = [
+      "close-up of hands performing the action, only hands and forearms in frame",
+      "top-down view of hands working, only hands visible"
+    ];
+
+    function pick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    // 무료 번역 함수 (한글 키워드 -> 영문 변환)
     async function translateToEnglish(text) {
       try {
         const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=ko&tl=en&dt=t&q=${encodeURIComponent(text)}`);
         const data = await res.json();
-        return data[0][0][0];
+        return data[0].map(seg => seg[0]).join('').trim();
       } catch (e) {
-        return text; // 번역 실패 시 원본 반환
+        return null;
       }
     }
 
     async function generateImage() {
       const keyword = document.getElementById('keyword').value.trim();
       const resultDiv = document.getElementById('result');
+      if (!keyword) { alert('키워드를 입력해주세요.'); return; }
 
-      if (!keyword) {
-        alert('키워드를 입력해주세요.');
+      resultDiv.innerHTML = "<p>⏳ 번역 중...</p>";
+
+      const translated = await translateToEnglish(keyword);
+      if (!translated || /[가-힣]/.test(translated)) {
+        resultDiv.innerHTML = `<p style="color:red;">⚠️ 번역 실패: "${translated ?? '응답 없음'}". 키워드를 영어로 직접 입력해보세요.</p>`;
         return;
       }
 
-      resultDiv.innerHTML = "<p>⏳ 키워드를 번역하고 무작위 실사 조합을 생성 중입니다...</p>";
+      const hasPerson = keyword.includes("사람");
+      const hasHand = keyword.includes("손");
 
-      // 1. 한글 키워드를 영어로 자동 번역
-      const translatedKeyword = await translateToEnglish(keyword);
-
-      const place = getRandomItem(placeOptions);
-      const camera = getRandomItem(cameraOptions);
-      const lighting = getRandomItem(lightingOptions);
-      
-      let personPrompt = "";
-      if (keyword.includes("사람")) {
-        personPrompt = getRandomItem(peopleOptions);
-      } else if (keyword.includes("손")) {
-        personPrompt = "only human hands visible showing action, no face, no upper body";
+      let subjectLine, camera;
+      if (hasPerson) {
+        subjectLine = `${pick(peopleOptions)}, ${translated}`;
+        camera = pick(actionCamera);
+      } else if (hasHand) {
+        subjectLine = `${translated}, only hands visible`;
+        camera = pick(handCamera);
       } else {
-        personPrompt = "no people, no human body parts, showing only the target object clearly";
+        subjectLine = `${translated}, a still life photo of the ${translated} as the main subject, empty room without anyone`;
+        camera = pick(objectCamera);
       }
 
-      // 최종 프롬프트 조합
-      const rawPrompt = `A realistic authentic raw smartphone photo taken in South Korea, clear subject of ${translatedKeyword}, ${personPrompt}, ${place}, ${camera}, ${lighting}, candid daily life atmosphere, NO 3D render, NO illustration, NO logos, NO text`;
+      const prompt = [
+        subjectLine,
+        pick(housingOptions),
+        pick(toneOptions),
+        camera,
+        pick(lightingOptions),
+        "candid amateur smartphone photo, realistic, natural colors, everyday Korean home",
+        `the ${translated} is clearly visible and in sharp focus`
+      ].join(", ");
 
       const seed = Math.floor(Math.random() * 1000000);
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(rawPrompt)}?width=1024&height=1024&seed=${seed}&nologo=true&model=flux`;
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${seed}&nologo=true&enhance=false&model=flux`;
 
       resultDiv.innerHTML = `
-        <p><strong>적용된 영문 조합:</strong><br>${rawPrompt}</p>
-        <p id="loadingText">🎨 이미지를 그리 고 있습니다... (약 5~10초 소요)</p>
-        <img src="${imageUrl}" alt="생성된 이미지" id="generatedImg" style="display:none;" />
+        <p><strong>번역:</strong> ${keyword} → ${translated}</p>
+        <p><strong>프롬프트:</strong><br>${prompt}</p>
+        <p id="loadingText">🎨 생성 중... (5~20초)</p>
+        <img src="${imageUrl}" id="generatedImg" style="display:none;" />
       `;
 
-      const generatedImg = document.getElementById("generatedImg");
-      const loadingText = document.getElementById("loadingText");
-
-      generatedImg.onload = function() {
-        loadingText.style.display = "none";
-        generatedImg.style.display = "block";
-      };
-
-      generatedImg.onerror = function() {
-        loadingText.innerHTML = "<span style='color:red;'>⚠️ 서버 응답이 지연되었습니다. 버튼을 다시 한번 눌러주세요.</span>";
-      };
+      const img = document.getElementById("generatedImg");
+      const loading = document.getElementById("loadingText");
+      img.onload = () => { loading.style.display = "none"; img.style.display = "block"; };
+      img.onerror = () => { loading.innerHTML = "<span style='color:red;'>⚠️ 서버 응답 지연. 다시 눌러주세요.</span>"; };
     }
   </script>
-</body>
-</html>
