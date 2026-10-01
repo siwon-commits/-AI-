@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>한국 실생활 사진 무료 생성기</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; line-height: 1.6; color: #333; }
+    h2 { border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+    input, button { padding: 12px; font-size: 16px; margin-top: 8px; width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid #ccc; }
+    button { background-color: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 16px; }
+    button:hover { background-color: #0056b3; }
+    #result { margin-top: 20px; padding: 15px; border: 1px solid #ddd; background: #f9f9f9; border-radius: 6px; word-break: break-all; }
+    img { max-width: 100%; height: auto; margin-top: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: block; }
+    .info { font-size: 14px; color: #666; margin-top: 5px; }
+  </style>
+</head>
+<body>
+  <h2>📷 한국 실생활 사진 무료 생성기</h2>
+  <p class="info">※ 100% 무료 API를 이용하며 결제나 회원가입이 필요 없습니다.</p>
+  
+  <label for="keyword" style="margin-top: 15px; display: block; font-weight: bold;">키워드 입력:</label>
+  <input type="text" id="keyword" placeholder="예: 싱크대 청소하는 사람, 장롱, 세탁기" />
+
+  <button onclick="generateImage()">다른 사진 1장 생성</button>
+
+  <div id="result">
+    <p>키워드를 입력하고 버튼을 누르면 무작위 규칙이 적용된 사진이 생성됩니다.</p>
+  </div>
+
+  <script>
+    let genCount = 0;
+
+    // 무작위 변주 데이터 베이스
+    const peopleOptions = [
+      "a Korean woman in her 30s wearing casual home clothes",
+      "a Korean man in his 40s wearing a comfortable t-shirt",
+      "a young Korean adult wearing domestic house clothes",
+      "a middle-aged Korean adult in relaxed home wear"
+    ];
+
+    const placeOptions = [
+      "inside a typical old Korean apartment",
+      "inside a modern compact Korean studio apartment (one-room)",
+      "inside a villa kitchen in Seoul",
+      "inside an authentic Korean residential house room"
+    ];
+
+    const cameraOptions = [
+      "eye-level smartphone camera angle",
+      "slightly high angle candid smartphone shot",
+      "close-up candid smartphone photo",
+      "wide shot showing the full room setup"
+    ];
+
+    const lightingOptions = [
+      "natural morning sunlight coming through the window",
+      "warm indoor ceiling light at evening",
+      "bright daytime interior lighting",
+      "slightly overcast soft indoor lighting"
+    ];
+
+    function getRandomItem(array) {
+      return array[Math.floor(Math.random() * array.length)];
+    }
+
+    function generateImage() {
+      const keyword = document.getElementById('keyword').value.trim();
+      const resultDiv = document.getElementById('result');
+
+      if (!keyword) {
+        alert('키워드를 입력해주세요.');
+        return;
+      }
+
+      genCount++;
+      resultDiv.innerHTML = "<p>⏳ 무료 AI 서버에서 실사진을 그리고 있습니다... (약 5~10초 소요)</p>";
+
+      // 규칙 기반 무작위 프롬프트 조합
+      const place = getRandomItem(placeOptions);
+      const camera = getRandomItem(cameraOptions);
+      const lighting = getRandomItem(lightingOptions);
+      
+      let personPrompt = "";
+      if (keyword.includes("사람")) {
+        personPrompt = getRandomItem(peopleOptions);
+      } else if (keyword.includes("손")) {
+        personPrompt = "only human hands visible showing action, no face, no upper body";
+      } else {
+        personPrompt = "no people, no human body parts, empty room background";
+      }
+
+      // 최종 프롬프트 조합 (실물 사진, 한국 생활감, CG 배제)
+      const rawPrompt = `A realistic authentic smartphone raw photo taken in South Korea, ${keyword}, ${personPrompt}, ${place}, ${camera}, ${lighting}, candid daily life atmosphere, NO 3D render, NO illustration, NO logos, NO text`;
+
+      // Pollinations AI 무료 API URL (랜덤 Seed를 추가하여 매번 다른 사진 생성)
+      const seed = Math.floor(Math.random() * 1000000);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(rawPrompt)}?width=1024&height=1024&seed=${seed}&nologo=true&model=flux`;
+
+      // 이미지 로드 완료 시 화면 표시
+      const img = new Image();
+      img.src = imageUrl;
+      img.alt = "생성된 실물 사진";
+      
+      img.onload = function() {
+        resultDiv.innerHTML = `
+          <p><strong>적용된 조합 묘사:</strong><br>${rawPrompt}</p>
+          <img src="${imageUrl}" alt="생성된 이미지" />
+        `;
+      };
+
+      img.onerror = function() {
+        resultDiv.innerHTML = `<p style="color:red;">이미지 생성 실패. 다시 시도해주세요.</p>`;
+      };
+    }
+  </script>
+</body>
+</html>
