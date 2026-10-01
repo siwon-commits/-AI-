@@ -20,7 +20,7 @@
   <p class="info">※ 100% 무료 API를 이용하며 결제나 회원가입이 필요 없습니다.</p>
   
   <label for="keyword" style="margin-top: 15px; display: block; font-weight: bold;">키워드 입력:</label>
-  <input type="text" id="keyword" placeholder="예: 싱크대 청소하는 사람, 장롱, 세탁기" />
+  <input type="text" id="keyword" placeholder="예: 바퀴벌레, 싱크대 청소하는 사람, 세탁기" />
 
   <button onclick="generateImage()">다른 사진 1장 생성</button>
 
@@ -61,7 +61,18 @@
       return array[Math.floor(Math.random() * array.length)];
     }
 
-    function generateImage() {
+    // 무료 번역 함수 (한글 키워드 -> 영문 변환)
+    async function translateToEnglish(text) {
+      try {
+        const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=ko&tl=en&dt=t&q=${encodeURIComponent(text)}`);
+        const data = await res.json();
+        return data[0][0][0];
+      } catch (e) {
+        return text; // 번역 실패 시 원본 반환
+      }
+    }
+
+    async function generateImage() {
       const keyword = document.getElementById('keyword').value.trim();
       const resultDiv = document.getElementById('result');
 
@@ -70,7 +81,10 @@
         return;
       }
 
-      resultDiv.innerHTML = "<p>⏳ 무료 AI 서버에서 실사진을 그리고 있습니다... (약 5~10초 소요)</p>";
+      resultDiv.innerHTML = "<p>⏳ 키워드를 번역하고 무작위 실사 조합을 생성 중입니다...</p>";
+
+      // 1. 한글 키워드를 영어로 자동 번역
+      const translatedKeyword = await translateToEnglish(keyword);
 
       const place = getRandomItem(placeOptions);
       const camera = getRandomItem(cameraOptions);
@@ -80,31 +94,22 @@
       if (keyword.includes("사람")) {
         personPrompt = getRandomItem(peopleOptions);
       } else if (keyword.includes("손")) {
-        personPrompt = "only human hands visible showing action no face no upper body";
+        personPrompt = "only human hands visible showing action, no face, no upper body";
       } else {
-        personPrompt = "no people no human body parts empty room background";
+        personPrompt = "no people, no human body parts, showing only the target object clearly";
       }
 
-      // 프롬프트 가공
-      const cleanKeyword = keyword.replace(/[^a-zA-Z0-9가-힣\s]/g, "");
-      const rawPrompt = `A realistic authentic smartphone raw photo taken in South Korea, ${cleanKeyword}, ${personPrompt}, ${place}, ${camera}, ${lighting}, candid daily life atmosphere, NO 3D render, NO illustration, NO logos, NO text`;
+      // 최종 프롬프트 조합
+      const rawPrompt = `A realistic authentic raw smartphone photo taken in South Korea, clear subject of ${translatedKeyword}, ${personPrompt}, ${place}, ${camera}, ${lighting}, candid daily life atmosphere, NO 3D render, NO illustration, NO logos, NO text`;
 
       const seed = Math.floor(Math.random() * 1000000);
-      
-      // 최신 안정화 무료 호스트 경로로 설정
-      const encodedPrompt = encodeURIComponent(rawPrompt);
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&nologo=true`;
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(rawPrompt)}?width=1024&height=1024&seed=${seed}&nologo=true&model=flux`;
 
-      // 이미지 로딩 처리
-      const imgContainer = document.createElement("div");
-      imgContainer.innerHTML = `
-        <p><strong>적용된 프롬프트 조합:</strong><br>${rawPrompt}</p>
+      resultDiv.innerHTML = `
+        <p><strong>적용된 영문 조합:</strong><br>${rawPrompt}</p>
+        <p id="loadingText">🎨 이미지를 그리 고 있습니다... (약 5~10초 소요)</p>
         <img src="${imageUrl}" alt="생성된 이미지" id="generatedImg" style="display:none;" />
-        <p id="loadingText">🎨 이미지를 렌더링 중입니다...</p>
       `;
-
-      resultDiv.innerHTML = "";
-      resultDiv.appendChild(imgContainer);
 
       const generatedImg = document.getElementById("generatedImg");
       const loadingText = document.getElementById("loadingText");
@@ -115,7 +120,7 @@
       };
 
       generatedImg.onerror = function() {
-        loadingText.innerHTML = "<span style='color:red;'>⚠️ 무료 API 서버 반응이 늦어지고 있습니다. 버튼을 한 번 더 눌러주세요.</span>";
+        loadingText.innerHTML = "<span style='color:red;'>⚠️ 서버 응답이 지연되었습니다. 버튼을 다시 한번 눌러주세요.</span>";
       };
     }
   </script>
